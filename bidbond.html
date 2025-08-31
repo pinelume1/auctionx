@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BidBond — Social Auction Commerce</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef9ff', 100: '#d9f1ff', 200: '#b6e5ff', 300: '#84d4ff',
+              400: '#46bdff', 500: '#199fff', 600: '#0c7fe6', 700: '#0a65b8',
+              800: '#0c548f', 900: '#0e476f', 950: '#082a42'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 25px -10px rgba(0,0,0,.15)'
+          },
+          borderRadius: {
+            '2xl': '1.25rem'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    html { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .glass { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <!-- App Shell -->
+  <div id="app" class="min-h-screen">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-40 bg-white/90 glass border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white grid place-content-center shadow-soft">
+            <span class="font-extrabold">BB</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-extrabold">BidBond</h1>
+          <span class="hidden sm:inline text-xs text-slate-500 ml-1">social + commerce + auctions</span>
+        </div>
+        <!-- Search -->
+        <div class="flex-1">
+          <label class="relative block">
+            <input id="searchInput" type="text" placeholder="Search products, auctions, people…" class="w-full rounded-2xl bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-500 border border-slate-200 px-4 py-2 outline-none"/>
+            <button id="searchBtn" class="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-1 rounded-xl bg-brand-600 text-white text-sm">Search</button>
+          </label>
+        </div>
+        <nav class="flex items-center gap-2">
+          <button data-nav="home" class="nav-btn px-3 py-2 rounded-xl hover:bg-slate-100 font-medium">Home</button>
+          <button data-nav="market" class="nav-btn px-3 py-2 rounded-xl hover:bg-slate-100 font-medium">Marketplace</button>
+          <button data-nav="auctions" class="nav-btn px-3 py-2 rounded-xl hover:bg-slate-100 font-medium">Auctions</button>
+          <button data-nav="profile" class="nav-btn px-3 py-2 rounded-xl hover:bg-slate-100 font-medium">Profile</button>
+          <button id="notifyBtn" class="relative p-2 rounded-xl hover:bg-slate-100" aria-label="Notifications">
+            <i data-lucide="bell"></i>
+            <span id="notifyDot" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+          </button>
+          <button id="themeToggle" class="p-2 rounded-xl hover:bg-slate-100" aria-label="Theme">
+            <i data-lucide="sun"></i>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left Sidebar -->
+      <aside class="lg:col-span-3 space-y-6">
+        <!-- Profile Quick Card -->
+        <section class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4">
+          <div class="flex items-center gap-3">
+            <img id="meAvatar" src="https://i.pravatar.cc/100?img=12" class="w-12 h-12 rounded-full" alt="Avatar" />
+            <div>
+              <h3 id="meName" class="font-bold">Guest</h3>
+              <p class="text-xs text-slate-500">@guest • <span id="meStats">0 bids • 0 sales</span></p>
+            </div>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button id="loginBtn" class="flex-1 px-3 py-2 rounded-xl bg-brand-600 text-white font-semibold">Sign in</button>
+            <button id="newPostBtn" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 text-white">Create</button>
+          </div>
+        </section>
+        <!-- Filters -->
+        <section class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4">
+          <h4 class="font-semibold mb-3">Filters</h4>
+          <div class="space-y-2 text-sm">
+            <label class="flex items-center gap-2"><input type="checkbox" class="filter" data-filter="verified"/> Verified sellers</label>
+            <label class="flex items-center gap-2"><input type="checkbox" class="filter" data-filter="auctionLive"/> Live auctions</label>
+            <label class="flex items-center gap-2"><input type="checkbox" class="filter" data-filter="nearby"/> Nearby</label>
+          </div>
+        </section>
+        <!-- Trending Auctions -->
+        <section class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold">Trending Auctions</h4>
+            <button data-nav="auctions" class="text-brand-700 text-sm hover:underline">See all</button>
+          </div>
+          <div id="trendingList" class="space-y-3"></div>
+        </section>
+      </aside>
+
+      <!-- Center: Feed / Marketplace / Auctions / Profile -->
+      <section class="lg:col-span-6 space-y-6">
+        <!-- Composer -->
+        <article class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4">
+          <div class="flex gap-3">
+            <img src="https://i.pravatar.cc/100?img=12" class="w-10 h-10 rounded-full" alt="me"/>
+            <div class="flex-1">
+              <textarea id="composerText" rows="2" class="w-full bg-slate-100 focus:bg-white rounded-2xl px-4 py-2 outline-none border border-slate-200 focus:ring-2 focus:ring-brand-500" placeholder="Share a product, deal, or update…"></textarea>
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <input id="composerImage" type="url" placeholder="Image URL (optional)" class="flex-1 min-w-[200px] bg-slate-100 focus:bg-white rounded-xl px-3 py-2 border border-slate-200" />
+                <input id="composerPrice" type="number" placeholder="Price (for listing)" class="w-40 bg-slate-100 focus:bg-white rounded-xl px-3 py-2 border border-slate-200" />
+                <label class="flex items-center gap-2 text-sm"><input id="composerAuction" type="checkbox"/> Auction</label>
+                <input id="composerEnd" type="datetime-local" class="hidden w-56 bg-slate-100 focus:bg-white rounded-xl px-3 py-2 border border-slate-200"/>
+                <button id="postBtn" class="px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold">Post</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Dynamic Container -->
+        <div id="viewContainer" class="space-y-6"></div>
+      </section>
+
+      <!-- Right Sidebar -->
+      <aside class="lg:col-span-3 space-y-6">
+        <!-- Discover People -->
+        <section class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold">Discover Sellers</h4>
+            <button class="text-brand-700 text-sm hover:underline" id="refreshPeople">Refresh</button>
+          </div>
+          <div id="peopleList" class="space-y-3"></div>
+        </section>
+        <!-- Tips -->
+        <section class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4">
+          <h4 class="font-semibold mb-2">How auctions work</h4>
+          <ul class="list-disc pl-5 text-sm text-slate-600 space-y-1">
+            <li>Highest bid before the timer ends wins.</li>
+            <li>Minimum increment is shown on each item.</li>
+            <li>Winners get a DM with seller details.</li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 py-10 text-center text-sm text-slate-600">
+      <p>© <span id="year"></span> BidBond — Built for demo purposes. No real payments.</p>
+    </footer>
+  </div>
+
+  <!-- Modals -->
+  <dialog id="authDialog" class="rounded-2xl p-0 w-full max-w-md shadow-2xl">
+    <form method="dialog" class="bg-white rounded-2xl">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-bold text-lg">Sign in</h3>
+        <button class="p-2 rounded-lg hover:bg-slate-100" value="cancel" aria-label="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="p-5 space-y-3">
+        <input id="authName" class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50" placeholder="Your display name"/>
+        <input id="authHandle" class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50" placeholder="@handle (letters, numbers)"/>
+        <button id="authSubmit" class="w-full px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold">Continue</button>
+      </div>
+      <div class="p-5 bg-slate-50 text-xs text-slate-500">We store your profile locally in your browser.</div>
+    </form>
+  </dialog>
+
+  <dialog id="commentsDialog" class="rounded-2xl p-0 w-full max-w-2xl shadow-2xl"></dialog>
+
+  <template id="personTpl">
+    <div class="flex items-center gap-3">
+      <img class="w-10 h-10 rounded-full" />
+      <div class="flex-1 min-w-0">
+        <p class="font-medium truncate name"></p>
+        <p class="text-xs text-slate-500 handle"></p>
+      </div>
+      <button class="follow px-3 py-1.5 rounded-xl bg-slate-900 text-white text-sm">Follow</button>
+    </div>
+  </template>
+
+  <template id="postTpl">
+    <article class="bg-white rounded-2xl shadow-soft border border-slate-200 p-4 space-y-3">
+      <div class="flex items-center gap-3">
+        <img class="w-10 h-10 rounded-full avatar" />
+        <div class="min-w-0">
+          <p class="font-semibold name"></p>
+          <p class="text-xs text-slate-500 meta"></p>
+        </div>
+      </div>
+      <p class="text-slate-800 content"></p>
+      <img class="rounded-xl w-full image hidden" alt="post image" />
+      <div class="actions flex items-center gap-4 text-sm pt-2 border-t border-slate-100">
+        <button class="likeBtn flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-100"><i data-lucide="heart"></i><span class="likes">0</span></button>
+        <button class="commentBtn flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-100"><i data-lucide="message-circle"></i><span class="comments">0</span></button>
+        <button class="shareBtn ml-auto flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-100"><i data-lucide="share-2"></i>Share</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="marketTpl">
+    <article class="bg-white rounded-2xl shadow-soft border border-slate-200 overflow-hidden">
+      <img class="w-full h-52 object-cover"/>
+      <div class="p-4 space-y-2">
+        <h3 class="font-semibold title line-clamp-2"></h3>
+        <p class="text-sm text-slate-600 desc line-clamp-2"></p>
+        <div class="flex items-center justify-between">
+          <span class="font-bold price"></span>
+          <button class="startAuction px-3 py-1.5 rounded-xl bg-slate-900 text-white text-sm">Start Auction</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <template id="auctionTpl">
+    <article class="bg-white rounded-2xl shadow-soft border border-slate-200 overflow-hidden">
+      <img class="w-full h-56 object-cover"/>
+      <div class="p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold title"></h3>
+          <span class="text-xs px-2 py-1 rounded-lg bg-slate-100 countdown">--:--</span>
+        </div>
+        <p class="text-sm text-slate-600 desc line-clamp-2"></p>
+        <div class="grid grid-cols-2 gap-3 items-end">
+          <div>
+            <p class="text-xs text-slate-500">Current bid</p>
+            <p class="text-2xl font-extrabold current">$0</p>
+            <p class="text-xs text-slate-500">Min increment: <span class="inc"></span></p>
+          </div>
+          <div class="justify-self-end">
+            <label class="block text-xs text-slate-500 mb-1">Your bid</label>
+            <input type="number" class="bidInput w-40 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200" />
+            <div class="mt-2 flex gap-2 justify-end">
+              <button class="watch px-3 py-1.5 rounded-xl bg-slate-100">Watch</button>
+              <button class="bid px-3 py-1.5 rounded-xl bg-brand-600 text-white">Place bid</button>
+            </div>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-slate-100 text-sm">
+          <p class="winner text-slate-600">No bids yet. Be the first!</p>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script>
+    // --------- Simple State & Utils ---------
+    const $ = (sel, ctx=document) => ctx.querySelector(sel);
+    const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+    const store = {
+      get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d } },
+      set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+    }
+    const uid = () => Math.random().toString(36).slice(2,9);
+    const fmt = (n) => `$${Number(n).toLocaleString()}`;
+    const timeLeft = (end) => Math.max(0, Math.floor((new Date(end) - Date.now())/1000));
+
+    const db = store.get('bb_db', null) || (function seed(){
+      const me = { id: uid(), name: 'Guest', handle: '@guest', avatar: 'https://i.pravatar.cc/100?img=12', stats:{bids:0,sales:0} };
+      const people = Array.from({length:6}, (_,i)=>({
+        id: uid(), name: ['Nadia','Sam','Ivy','Mo','Liu','Ken'][i], handle: '@' + ['nad','sam','ivy','mo','liu','ken'][i],
+        avatar: `https://i.pravatar.cc/100?img=${i+2}`, verified: Math.random()>0.5
+      }));
+      const posts = [
+        { id: uid(), user: people[0], text: 'Flash sale: smart watch in mint condition. DM for details!', image: 'https://images.unsplash.com/photo-1518448936158-8fce0a366e2a?q=80&w=1200&auto=format&fit=crop', price: 85, likes: 2, comments: [] },
+        { id: uid(), user: people[1], text: 'Launching weekly gadget auctions every Friday!', image: '', price: null, likes: 1, comments: [] },
+      ];
+      const market = [
+        { id: uid(), title: 'Noise‑canceling Headphones', desc: 'Over‑ear, 30h battery, ANC.', price: 120, image: 'https://images.unsplash.com/photo-1518448401637-6a08b0d7a103?q=80&w=1200&auto=format&fit=crop' },
+        { id: uid(), title: 'Retro Camera', desc: 'Film camera with 50mm lens.', price: 210, image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop' },
+        { id: uid(), title: 'Gaming Console', desc: '1TB, 2 controllers, 12 games.', price: 390, image: 'https://images.unsplash.com/photo-1605901309584-818e25960a8b?q=80&w=1200&auto=format&fit=crop' },
+      ];
+      const auctions = [
+        { id: uid(), title: 'MacBook Air M2', desc: '8‑core GPU, 16GB RAM, 512GB SSD', image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1200&auto=format&fit=crop',
+          base: 600, inc: 20, end: Date.now() + 1000*60*8, bids: [] },
+        { id: uid(), title: 'Sneaker Collectible', desc: 'DS pair, size 42', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop',
+          base: 90, inc: 5, end: Date.now() + 1000*60*4, bids: [] },
+        { id: uid(), title: '4K Monitor 27"', desc: 'IPS, 144Hz, HDR600', image: 'https://images.unsplash.com/photo-1587202372775-98927b415425?q=80&w=1200&auto=format&fit=crop',
+          base: 180, inc: 10, end: Date.now() + 1000*60*12, bids: [] },
+      ];
+      const follows = {};
+      const watchers = {};
+      const notifications = [];
+      const meStats = { bids: 0, sales: 0 };
+      const meObj = me;
+      const data = { me: meObj, people, posts, market, auctions, follows, watchers, notifications, meStats };
+      store.set('bb_db', data); return data;
+    })();
+
+    function save(){ store.set('bb_db', db); }
+
+    // --------- Auth ---------
+    const authDialog = $('#authDialog');
+    $('#loginBtn').addEventListener('click', ()=> authDialog.showModal());
+    $('#authSubmit').addEventListener('click', (e)=>{
+      e.preventDefault();
+      const name = $('#authName').value.trim() || 'Guest';
+      let handle = $('#authHandle').value.trim();
+      if(!handle.startsWith('@')) handle = '@' + handle.replace(/[^a-z0-9_]/gi,'');
+      if(handle === '@') handle = '@guest';
+      db.me.name = name; db.me.handle = handle; save();
+      $('#meName').textContent = name;
+      $('#meStats').textContent = `${db.meStats.bids} bids • ${db.meStats.sales} sales`;
+      authDialog.close();
+      notify(`Welcome, ${name}!`);
+    });
+
+    // --------- Composer ---------
+    const composerAuction = $('#composerAuction');
+    const composerEnd = $('#composerEnd');
+    composerAuction.addEventListener('change', ()=> composerEnd.classList.toggle('hidden', !composerAuction.checked));
+
+    $('#postBtn').addEventListener('click', ()=>{
+      const text = $('#composerText').value.trim();
+      const img = $('#composerImage').value.trim();
+      const price = Number($('#composerPrice').value) || null;
+      const isAuction = composerAuction.checked;
+      const endVal = composerEnd.value;
+      if(!text) return notify('Write something first');
+      const post = { id: uid(), user: db.me, text, image: img, price, likes: 0, comments: [] };
+      db.posts.unshift(post);
+      if(isAuction){
+        const endTs = endVal ? new Date(endVal).getTime() : Date.now() + 1000*60*5;
+        db.auctions.unshift({ id: uid(), title: text.slice(0,60), desc: text, image: img || 'https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop', base: Math.max(1, price || 10), inc: Math.ceil((price||10)*0.1), end: endTs, bids: [] });
+      }
+      save();
+      $('#composerText').value=''; $('#composerImage').value=''; $('#composerPrice').value=''; composerAuction.checked=false; composerEnd.classList.add('hidden');
+      renderCurrentView();
+      notify('Posted!');
+    });
+
+    // --------- Notifications ---------
+    const notifyDot = $('#notifyDot');
+    function notify(msg){
+      db.notifications.push({ id: uid(), msg, ts: Date.now() });
+      notifyDot.classList.remove('hidden');
+      save();
+    }
+    $('#notifyBtn').addEventListener('click', ()=>{
+      if(!db.notifications.length) return alert('No notifications');
+      alert(db.notifications.slice(-5).map(n=>`• ${n.msg}`).join('\n'));
+      notifyDot.classList.add('hidden');
+    });
+
+    // --------- People ---------
+    function renderPeople(){
+      const wrap = $('#peopleList'); wrap.innerHTML='';
+      db.people.forEach(p=>{
+        const node = $('#personTpl').content.firstElementChild.cloneNode(true);
+        node.querySelector('img').src = p.avatar;
+        node.querySelector('.name').textContent = p.name + (p.verified?' ✓':'');
+        node.querySelector('.handle').textContent = p.handle;
+        node.querySelector('.follow').addEventListener('click', ()=>{ db.follows[p.id] = !db.follows[p.id]; save(); notify(`${db.follows[p.id]?'Following':'Unfollowed'} ${p.name}`); renderPeople(); });
+        node.querySelector('.follow').textContent = db.follows[p.id] ? 'Following' : 'Follow';
+        wrap.appendChild(node);
+      });
+    }
+
+    // --------- Trending ---------
+    function renderTrending(){
+      const wrap = $('#trendingList'); wrap.innerHTML='';
+      db.auctions.slice(0,4).forEach(a=>{
+        const left = timeLeft(a.end);
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-3';
+        el.innerHTML = `
+          <img src="${a.image}" class="w-12 h-12 rounded-xl object-cover"/>
+          <div class="min-w-0 flex-1">
+            <p class="font-medium truncate">${a.title}</p>
+            <p class="text-xs text-slate-500">${left?`Ends in ${Math.floor(left/60)}m ${left%60}s`:'Ended'}</p>
+          </div>
+          <span class="text-sm font-semibold">${fmt( (a.bids.at(-1)?.amount) || a.base)}</span>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    // --------- Views ---------
+    const navButtons = $$('.nav-btn');
+    let currentView = 'home';
+    navButtons.forEach(btn=> btn.addEventListener('click', ()=>{ currentView = btn.dataset.nav; renderCurrentView(); window.scrollTo({top:0,behavior:'smooth'}) }));
+
+    function renderCurrentView(){
+      const container = $('#viewContainer'); container.innerHTML='';
+      if(currentView==='home') renderFeed(container);
+      if(currentView==='market') renderMarket(container);
+      if(currentView==='auctions') renderAuctions(container);
+      if(currentView==='profile') renderProfile(container);
+      lucide.createIcons();
+      renderTrending();
+    }
+
+    // Feed
+    function renderFeed(container){
+      db.posts.forEach(p=>{
+        const node = $('#postTpl').content.firstElementChild.cloneNode(true);
+        node.querySelector('.avatar').src = p.user.avatar;
+        node.querySelector('.name').textContent = p.user.name + ' ' + p.user.handle;
+        node.querySelector('.meta').textContent = new Date().toLocaleString();
+        node.querySelector('.content').textContent = p.text;
+        if(p.image){ const img = node.querySelector('.image'); img.src = p.image; img.classList.remove('hidden'); }
+        node.querySelector('.likes').textContent = p.likes;
+        node.querySelector('.likeBtn').addEventListener('click', ()=>{ p.likes++; save(); node.querySelector('.likes').textContent = p.likes; });
+        node.querySelector('.commentBtn').addEventListener('click', ()=> openComments(p));
+        container.appendChild(node);
+      });
+    }
+
+    function openComments(post){
+      const dlg = $('#commentsDialog');
+      dlg.innerHTML = `
+        <form method="dialog" class="bg-white rounded-2xl">
+          <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+            <h3 class="font-bold text-lg">Comments</h3>
+            <button class="p-2 rounded-lg hover:bg-slate-100" value="cancel" aria-label="Close"><i data-lucide="x"></i></button>
+          </div>
+          <div class="p-5 space-y-3 max-h-[60vh] overflow-y-auto">${post.comments.map(c=>`
+            <div class='flex gap-3'>
+              <img src='${c.user.avatar}' class='w-8 h-8 rounded-full'/>
+              <div>
+                <p class='text-sm'><span class='font-semibold'>${c.user.name}</span> ${c.text}</p>
+                <p class='text-xs text-slate-500'>${new Date(c.ts).toLocaleString()}</p>
+              </div>
+            </div>`).join('')}</div>
+          <div class="p-5 border-t border-slate-200">
+            <label class='flex gap-2'>
+              <input id='cmtInput' class='flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200' placeholder='Write a comment…'/>
+              <button id='cmtSend' class='px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold'>Send</button>
+            </label>
+          </div>
+        </form>`;
+      dlg.showModal();
+      dlg.querySelector('#cmtSend').addEventListener('click', (e)=>{
+        e.preventDefault();
+        const val = dlg.querySelector('#cmtInput').value.trim(); if(!val) return;
+        post.comments.push({ user: db.me, text: val, ts: Date.now() }); save(); dlg.close(); notify('Comment added');
+      });
+      lucide.createIcons();
+    }
+
+    // Marketplace
+    function renderMarket(container){
+      const grid = document.createElement('div');
+      grid.className = 'grid sm:grid-cols-2 gap-6';
+      db.market.forEach(m=>{
+        const node = $('#marketTpl').content.firstElementChild.cloneNode(true);
+        node.querySelector('img').src = m.image;
+        node.querySelector('.title').textContent = m.title;
+        node.querySelector('.desc').textContent = m.desc;
+        node.querySelector('.price').textContent = fmt(m.price);
+        node.querySelector('.startAuction').addEventListener('click', ()=>{
+          db.auctions.unshift({ id: uid(), title: m.title, desc: m.desc, image: m.image, base: m.price, inc: Math.ceil(m.price*0.1), end: Date.now()+1000*60*5, bids: [] }); save(); currentView='auctions'; renderCurrentView(); notify('Auction started');
+        });
+        grid.appendChild(node);
+      });
+      container.appendChild(grid);
+    }
+
+    // Auctions
+    function renderAuctions(container){
+      const grid = document.createElement('div'); grid.className = 'grid sm:grid-cols-2 gap-6';
+      db.auctions.forEach(a=>{
+        const node = $('#auctionTpl').content.firstElementChild.cloneNode(true);
+        node.querySelector('img').src = a.image;
+        node.querySelector('.title').textContent = a.title;
+        node.querySelector('.desc').textContent = a.desc;
+        node.querySelector('.inc').textContent = fmt(a.inc);
+        const current = ()=> a.bids.length ? a.bids[a.bids.length-1].amount : a.base;
+        const currentEl = node.querySelector('.current'); currentEl.textContent = fmt(current());
+        const winnerEl = node.querySelector('.winner');
+        const input = node.querySelector('.bidInput'); input.min = current()+a.inc; input.placeholder = (current()+a.inc);
+        const cd = node.querySelector('.countdown');
+        const updateCountdown = ()=>{
+          const left = timeLeft(a.end);
+          if(left<=0){ cd.textContent = 'Ended'; node.querySelector('.bid').disabled = true; const win = a.bids.at(-1); winnerEl.textContent = win? `Winner: ${win.user.name} at ${fmt(win.amount)}`:'No winner'; return true; }
+          cd.textContent = `${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`; return false;
+        }
+        updateCountdown();
+        const t = setInterval(()=>{ if(updateCountdown()) clearInterval(t); }, 1000);
+        node.querySelector('.watch').addEventListener('click', ()=>{ db.watchers[a.id]=true; save(); notify(`Watching ${a.title}`) });
+        node.querySelector('.bid').addEventListener('click', ()=>{
+          const val = Math.floor(Number(input.value));
+          const min = current()+a.inc;
+          if(!val || val < min) return notify(`Bid must be ≥ ${fmt(min)}`);
+          a.bids.push({ user: db.me, amount: val, ts: Date.now() }); db.meStats.bids++; save();
+          currentEl.textContent = fmt(val); input.value=''; input.placeholder = val + a.inc; input.min = val + a.inc;
+          winnerEl.textContent = `Top bid: ${db.me.name} at ${fmt(val)}`;
+          notify(`You bid ${fmt(val)} on ${a.title}`);
+          renderTrending();
+          $('#meStats').textContent = `${db.meStats.bids} bids • ${db.meStats.sales} sales`;
+        });
+        grid.appendChild(node);
+      });
+      container.appendChild(grid);
+    }
+
+    // Profile
+    function renderProfile(container){
+      const card = document.createElement('section');
+      card.className = 'bg-white rounded-2xl shadow-soft border border-slate-200 p-4';
+      card.innerHTML = `
+        <div class='flex items-center gap-4'>
+          <img src='${db.me.avatar}' class='w-16 h-16 rounded-full'/>
+          <div>
+            <h3 class='font-bold text-lg'>${db.me.name}</h3>
+            <p class='text-slate-500 text-sm'>${db.me.handle}</p>
+            <p class='text-xs text-slate-500 mt-1'>${db.meStats.bids} bids • ${db.meStats.sales} sales</p>
+          </div>
+          <button id='editProfile' class='ml-auto px-3 py-2 rounded-xl bg-slate-900 text-white'>Edit</button>
+        </div>`;
+      container.appendChild(card);
+      const myPosts = document.createElement('div'); myPosts.className='space-y-4 mt-4';
+      db.posts.filter(p=>p.user.handle===db.me.handle).forEach(p=>{
+        const node = $('#postTpl').content.firstElementChild.cloneNode(true);
+        node.querySelector('.avatar').src = p.user.avatar;
+        node.querySelector('.name').textContent = p.user.name + ' ' + p.user.handle;
+        node.querySelector('.meta').textContent = 'Your post';
+        node.querySelector('.content').textContent = p.text;
+        if(p.image){ const img = node.querySelector('.image'); img.src = p.image; img.classList.remove('hidden'); }
+        node.querySelector('.likeBtn').addEventListener('click', ()=>{ p.likes++; save(); node.querySelector('.likes').textContent = p.likes; });
+        node.querySelector('.commentBtn').addEventListener('click', ()=> openComments(p));
+        myPosts.appendChild(node);
+      });
+      if(!myPosts.children.length){ myPosts.innerHTML = `<p class='text-sm text-slate-500'>No posts yet. Share something from the composer above.</p>` }
+      container.appendChild(myPosts);
+    }
+
+    // Search
+    $('#searchBtn').addEventListener('click', ()=>{
+      const q = $('#searchInput').value.toLowerCase().trim(); if(!q) return renderCurrentView();
+      const container = $('#viewContainer'); container.innerHTML='';
+      const results = [
+        ...db.posts.filter(p=> p.text.toLowerCase().includes(q)),
+        ...db.market.filter(m=> m.title.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q)),
+        ...db.auctions.filter(a=> a.title.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q)),
+      ];
+      const wrap = document.createElement('div'); wrap.className='space-y-4';
+      if(!results.length){ wrap.innerHTML = `<p class='text-slate-600'>No results for <strong>${q}</strong>.</p>` }
+      results.forEach(item=>{
+        if(item.base!==undefined){ // auction
+          const temp = document.createElement('div');
+          temp.className = 'p-4 rounded-2xl border border-slate-200 bg-white';
+          temp.innerHTML = `<p class='text-xs text-slate-500 mb-2'>Auction</p><p class='font-semibold mb-1'>${item.title}</p><p class='text-sm text-slate-600 mb-2'>${item.desc}</p><a class='text-brand-700 underline cursor-pointer'>Go to auctions</a>`;
+          temp.querySelector('a').addEventListener('click', ()=>{ currentView='auctions'; renderCurrentView(); });
+          wrap.appendChild(temp);
+        } else if(item.price!==undefined){ // market
+          const temp = document.createElement('div');
+          temp.className = 'p-4 rounded-2xl border border-slate-200 bg-white';
+          temp.innerHTML = `<p class='text-xs text-slate-500 mb-2'>Marketplace</p><p class='font-semibold mb-1'>${item.title}</p><p class='text-sm text-slate-600 mb-2'>${item.desc}</p><a class='text-brand-700 underline cursor-pointer'>Go to marketplace</a>`;
+          temp.querySelector('a').addEventListener('click', ()=>{ currentView='market'; renderCurrentView(); });
+          wrap.appendChild(temp);
+        } else { // post
+          const temp = document.createElement('div');
+          temp.className = 'p-4 rounded-2xl border border-slate-200 bg-white';
+          temp.innerHTML = `<p class='text-xs text-slate-500 mb-2'>Post</p><p class='text-sm'>${item.text}</p>`;
+          wrap.appendChild(temp);
+        }
+      });
+      container.appendChild(wrap);
+    });
+
+    // Theme
+    const themeToggle = $('#themeToggle');
+    let dark = false;
+    themeToggle.addEventListener('click', ()=>{
+      dark = !dark; document.documentElement.classList.toggle('dark', dark);
+      document.body.classList.toggle('bg-slate-900', dark);
+      document.body.classList.toggle('text-slate-100', dark);
+    });
+
+    // Init
+    function init(){
+      $('#year').textContent = new Date().getFullYear();
+      $('#meName').textContent = db.me.name; $('#meStats').textContent = `${db.meStats.bids} bids • ${db.meStats.sales} sales`;
+      renderPeople(); renderTrending(); renderCurrentView();
+      $('#newPostBtn').addEventListener('click', ()=> $('#composerText').focus());
+      $('#refreshPeople').addEventListener('click', ()=>{ db.people.sort(()=>Math.random()-0.5); renderPeople(); });
+      lucide.createIcons();
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
